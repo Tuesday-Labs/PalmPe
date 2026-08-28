@@ -1,13 +1,101 @@
-import { useState } from 'react';
-import { CreditCard, Smartphone, ChevronRight, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CreditCard, Smartphone, ChevronRight, Plus, Loader } from 'lucide-react';
 
 export default function WalletPage() {
   const [balance, setBalance] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleAddMoney = (amount) => {
-    // Mock functionality for now
-    setBalance(prev => prev + amount);
-    alert(`Successfully added ₹${amount} to your wallet! (Mock Sandbox)`);
+  // Load the Razorpay SDK script dynamically
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  const handleRazorpayPayment = async (amount) => {
+    if (!window.Razorpay) {
+      alert('Razorpay SDK failed to load. Are you offline?');
+      return;
+    }
+    
+    setIsProcessing(true);
+
+    try {
+      // 1. Create Order on our local backend
+      // (Change localhost:5000 to your deployed backend URL in production)
+      const orderResponse = await fetch('http://localhost:5000/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amount })
+      });
+      
+      const orderData = await orderResponse.json();
+      
+      if (!orderData.success) {
+        throw new Error('Failed to create order. Is your backend running?');
+      }
+
+      // 2. Open Razorpay Checkout overlay
+      const options = {
+        key: 'YOUR_RAZORPAY_KEY_ID_HERE', // WARNING: Replace with your actual Test Key ID
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'PalmPay Wallet',
+        description: 'Wallet Recharge',
+        image: 'https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/hand.svg', // Simple hand icon
+        order_id: orderData.orderId,
+        handler: async function (response) {
+          // 3. Verify Payment Signature on Backend
+          try {
+            const verifyResponse = await fetch('http://localhost:5000/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              })
+            });
+            
+            const verifyData = await verifyResponse.json();
+            
+            if (verifyData.success) {
+              setBalance(prev => prev + amount);
+              alert(`Successfully added ₹${amount} to your wallet!`);
+            } else {
+              alert('Payment Verification Failed!');
+            }
+          } catch (err) {
+            console.error(err);
+            alert('Error verifying payment.');
+          }
+        },
+        prefill: {
+          name: 'PalmPay User',
+          email: 'user@example.com',
+          contact: '9999999999'
+        },
+        theme: {
+          color: '#00ffcc' // Matches our neon accent color
+        }
+      };
+
+      const razorpayInstance = new window.Razorpay(options);
+      razorpayInstance.on('payment.failed', function (response) {
+        alert(`Payment Failed: ${response.error.description}`);
+      });
+      razorpayInstance.open();
+      
+    } catch (error) {
+      console.error(error);
+      alert('Error initiating payment. Make sure the Node.js backend is running on port 5000!');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -24,24 +112,24 @@ export default function WalletPage() {
       
       <div className="section-title">Recharge Nodes</div>
       
-      <div className="payment-method" onClick={() => handleAddMoney(1000)}>
+      <div className="payment-method" onClick={() => handleRazorpayPayment(1000)}>
         <div className="payment-icon" style={{ color: '#00ffcc', borderColor: 'rgba(0,255,204,0.3)' }}>
-          <Smartphone size={24} />
+          {isProcessing ? <Loader className="animate-spin" size={24} /> : <Smartphone size={24} />}
         </div>
         <div style={{ flex: 1 }}>
           <h3 style={{ color: 'var(--text-primary)' }}>PhonePe / UPI</h3>
-          <p>Instant digital transfer</p>
+          <p>Instant digital transfer (₹1000)</p>
         </div>
         <ChevronRight size={20} color="var(--text-secondary)" />
       </div>
       
-      <div className="payment-method" onClick={() => handleAddMoney(2500)}>
+      <div className="payment-method" onClick={() => handleRazorpayPayment(2500)}>
         <div className="payment-icon" style={{ color: '#00b3ff', borderColor: 'rgba(0,179,255,0.3)' }}>
-          <CreditCard size={24} />
+          {isProcessing ? <Loader className="animate-spin" size={24} /> : <CreditCard size={24} />}
         </div>
         <div style={{ flex: 1 }}>
           <h3 style={{ color: 'var(--text-primary)' }}>Razorpay Gateway</h3>
-          <p>Credit/Debit & Netbanking</p>
+          <p>Credit/Debit & Netbanking (₹2500)</p>
         </div>
         <ChevronRight size={20} color="var(--text-secondary)" />
       </div>
