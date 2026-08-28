@@ -8,31 +8,34 @@ export default function SuccessPage() {
   return (
     <div className="page-container">
       <div className="content-center">
-        <div className="scanner-container success" style={{ backgroundColor: 'transparent', border: 'none', boxShadow: 'none' }}>
+        <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 32px' }}>
           <div style={{ 
-            width: '120px', 
-            height: '120px', 
+            position: 'absolute',
+            inset: 0,
             borderRadius: '50%', 
-            backgroundColor: 'rgba(52, 199, 89, 0.1)',
+            border: '2px solid var(--accent-color)',
+            animation: 'breathe 2s ease-in-out infinite'
+          }}></div>
+          
+          <div style={{ 
+            width: '100%', 
+            height: '100%', 
+            borderRadius: '50%', 
+            backgroundColor: 'var(--surface-elevated)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            zIndex: 2,
+            position: 'relative'
           }}>
-            <Check size={64} className="success-icon" />
+            <Check size={48} style={{ animation: 'successPop 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} color="var(--accent-color)" />
           </div>
         </div>
         
-        <h2>Registration Complete</h2>
+        <h2>Identity Verified</h2>
         <p style={{ maxWidth: '300px', margin: '0 auto 32px' }}>
-          Your palm biometric data has been successfully registered and securely stored on the device.
+          Your palm biometric signature has been successfully registered and encrypted on the secure enclave.
         </p>
-        
-        <div className="glass-panel" style={{ textAlign: 'left' }}>
-          <h3 style={{ fontSize: '16px', marginBottom: '8px' }}>Ready to use PalmPay!</h3>
-          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: 0 }}>
-            You can now make payments effortlessly just by hovering your palm over our scanners.
-          </p>
-        </div>
       </div>
       
       <div className="spacer"></div>
@@ -40,9 +43,10 @@ export default function SuccessPage() {
       <button 
         className="btn btn-primary" 
         onClick={() => navigate('/wallet')}
+        style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-color)' }}
       >
         <span className="btn-icon"><Wallet size={20} /></span>
-        Go to Wallet
+        Access Wallet
       </button>
     </div>
   );

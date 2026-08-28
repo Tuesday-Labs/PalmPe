@@ -29,7 +29,7 @@ export default function RegistrationPage() {
       <div className="app-header">
         <div className="app-logo">
           <Hand size={28} color="var(--accent-color)" />
-          <span>PalmPay</span>
+          <span style={{ background: 'linear-gradient(90deg, #00ffcc, #00b3ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>PalmPay</span>
         </div>
       </div>
       
@@ -37,7 +37,7 @@ export default function RegistrationPage() {
         <h2>Create your Account</h2>
         <p>Enter your details to register for PalmPay biometrics.</p>
         
-        <form className="glass-panel" onSubmit={handleSubmit}>
+        <form style={{ width: '100%', marginTop: '16px' }} onSubmit={handleSubmit}>
           <div className="input-group">
             <label className="input-label" htmlFor="firstName">First Name</label>
             <input
@@ -64,7 +64,7 @@ export default function RegistrationPage() {
             />
           </div>
           
-          <div className="input-group" style={{ marginBottom: 0 }}>
+          <div className="input-group" style={{ marginBottom: '32px' }}>
             <label className="input-label" htmlFor="phone">Phone Number</label>
             <input
               type="tel"
@@ -76,19 +76,18 @@ export default function RegistrationPage() {
               onChange={handleChange}
             />
           </div>
+          
+          <button 
+            className="btn btn-primary" 
+            onClick={handleSubmit}
+            disabled={!isFormValid}
+            type="button"
+          >
+            <span className="btn-icon"><Hand size={18} /></span>
+            Capture Palm Images
+          </button>
         </form>
       </div>
-      
-      <div className="spacer"></div>
-      
-      <button 
-        className="btn btn-primary" 
-        onClick={handleSubmit}
-        disabled={!isFormValid}
-      >
-        <span className="btn-icon"><Hand size={20} /></span>
-        Capture Palm Images
-      </button>
     </div>
   );
 }
