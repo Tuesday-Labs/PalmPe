@@ -41,7 +41,7 @@ export default function WalletPage() {
 
       // 2. Open Razorpay Checkout overlay
       const options = {
-        key: 'YOUR_RAZORPAY_KEY_ID_HERE', // WARNING: Replace with your actual Test Key ID
+        key: 'rzp_test_TVN7cQAQunN0mM',
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'PalmPay Wallet',
