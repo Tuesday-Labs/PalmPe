@@ -1,55 +1,43 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Smartphone, ChevronRight, Plus, Loader } from 'lucide-react';
+import { ChevronLeft, MoreVertical, Plus, CreditCard, Smartphone } from 'lucide-react';
 
 export default function WalletPage() {
   const [balance, setBalance] = useState(0);
+  const [selectedMethod, setSelectedMethod] = useState('razorpay');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Load the Razorpay SDK script dynamically
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
     document.body.appendChild(script);
-    return () => {
-      document.body.removeChild(script);
-    };
+    return () => document.body.removeChild(script);
   }, []);
 
-  const handleRazorpayPayment = async (amount) => {
-    if (!window.Razorpay) {
-      alert('Razorpay SDK failed to load. Are you offline?');
-      return;
-    }
+  const handlePayment = async () => {
+    if (!window.Razorpay) return alert('Razorpay SDK failed to load.');
     
     setIsProcessing(true);
+    const amountToAdd = 2500; // Hardcoded recharge amount for demo
 
     try {
-      // 1. Create Order on our local backend
-      // (Change localhost:5000 to your deployed backend URL in production)
       const orderResponse = await fetch('http://localhost:5000/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amount })
+        body: JSON.stringify({ amount: amountToAdd })
       });
       
       const orderData = await orderResponse.json();
-      
-      if (!orderData.success) {
-        throw new Error('Failed to create order. Is your backend running?');
-      }
+      if (!orderData.success) throw new Error('Failed to create order.');
 
-      // 2. Open Razorpay Checkout overlay
       const options = {
         key: 'rzp_test_TVN7cQAQunN0mM',
         amount: orderData.amount,
         currency: orderData.currency,
-        name: 'PalmPay Wallet',
+        name: 'PalmPay',
         description: 'Wallet Recharge',
-        image: 'https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/hand.svg', // Simple hand icon
         order_id: orderData.orderId,
         handler: async function (response) {
-          // 3. Verify Payment Signature on Backend
           try {
             const verifyResponse = await fetch('http://localhost:5000/verify-payment', {
               method: 'POST',
@@ -60,104 +48,96 @@ export default function WalletPage() {
                 razorpay_signature: response.razorpay_signature,
               })
             });
-            
             const verifyData = await verifyResponse.json();
-            
             if (verifyData.success) {
-              setBalance(prev => prev + amount);
-              alert(`Successfully added ₹${amount} to your wallet!`);
-            } else {
-              alert('Payment Verification Failed!');
+              setBalance(prev => prev + amountToAdd);
             }
           } catch (err) {
-            console.error(err);
-            alert('Error verifying payment.');
+            alert('Verification Error');
           }
         },
-        prefill: {
-          name: 'PalmPay User',
-          email: 'user@example.com',
-          contact: '9999999999'
-        },
-        theme: {
-          color: '#00ffcc' // Matches our neon accent color
-        }
+        theme: { color: '#1d1d1f' }
       };
 
-      const razorpayInstance = new window.Razorpay(options);
-      razorpayInstance.on('payment.failed', function (response) {
-        alert(`Payment Failed: ${response.error.description}`);
-      });
-      razorpayInstance.open();
-      
-    } catch (error) {
-      console.error(error);
-      alert('Error initiating payment. Make sure the Node.js backend is running on port 5000!');
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      alert('Error initiating payment. Is the backend running?');
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <div className="page-container" style={{ padding: '32px 24px' }}>
-      <h2 style={{ textAlign: 'left', width: '100%', marginBottom: '24px', color: 'var(--text-primary)' }}>Wallet</h2>
-      
-      <div className="wallet-card">
-        <div className="wallet-balance-label">Digital Balance</div>
-        <div className="wallet-balance">
-          <span style={{ fontSize: '24px', verticalAlign: 'top', marginRight: '4px', color: 'var(--accent-color)' }}>₹</span>
-          {balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+    <div className="page-container" style={{ padding: '24px 20px', backgroundColor: '#f5f5f7' }}>
+      <div className="app-header">
+        <div className="back-btn">
+          <ChevronLeft size={24} color="var(--text-primary)" />
+        </div>
+        <div className="header-title">Payment Method</div>
+        <div style={{ position: 'absolute', right: 0, width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <MoreVertical size={20} color="var(--text-primary)" />
         </div>
       </div>
-      
-      <div className="section-title">Recharge Nodes</div>
-      
-      <div className="payment-method" onClick={() => handleRazorpayPayment(1000)}>
-        <div className="payment-icon" style={{ color: '#00ffcc', borderColor: 'rgba(0,255,204,0.3)' }}>
-          {isProcessing ? <Loader className="animate-spin" size={24} /> : <Smartphone size={24} />}
+
+      <div className="payment-list">
+        <div className="payment-method" onClick={() => setSelectedMethod('razorpay')}>
+          <div className="payment-icon" style={{ backgroundColor: '#fff', border: '1px solid #f0f0f0' }}>
+            <CreditCard size={20} color="#ff522b" />
+          </div>
+          <div className="payment-info">
+            <div className="payment-title">Credit Card</div>
+            <div className="payment-subtitle">Via Razorpay Gateway</div>
+          </div>
+          <div className={`radio-circle ${selectedMethod === 'razorpay' ? 'selected' : ''}`}></div>
         </div>
-        <div style={{ flex: 1 }}>
-          <h3 style={{ color: 'var(--text-primary)' }}>PhonePe / UPI</h3>
-          <p>Instant digital transfer (₹1000)</p>
+
+        <div className="payment-method" onClick={() => setSelectedMethod('upi')}>
+          <div className="payment-icon" style={{ backgroundColor: '#fff', border: '1px solid #f0f0f0' }}>
+            <Smartphone size={20} color="#1d1d1f" />
+          </div>
+          <div className="payment-info">
+            <div className="payment-title">UPI App</div>
+            <div className="payment-subtitle">Direct Bank Transfer</div>
+          </div>
+          <div className={`radio-circle ${selectedMethod === 'upi' ? 'selected' : ''}`}></div>
         </div>
-        <ChevronRight size={20} color="var(--text-secondary)" />
-      </div>
-      
-      <div className="payment-method" onClick={() => handleRazorpayPayment(2500)}>
-        <div className="payment-icon" style={{ color: '#00b3ff', borderColor: 'rgba(0,179,255,0.3)' }}>
-          {isProcessing ? <Loader className="animate-spin" size={24} /> : <CreditCard size={24} />}
-        </div>
-        <div style={{ flex: 1 }}>
-          <h3 style={{ color: 'var(--text-primary)' }}>Razorpay Gateway</h3>
-          <p>Credit/Debit & Netbanking (₹2500)</p>
-        </div>
-        <ChevronRight size={20} color="var(--text-secondary)" />
-      </div>
-      
-      <div style={{ marginTop: '32px' }}>
-        <div className="section-title">Ledger</div>
         
-        {balance === 0 ? (
-          <div className="glass-panel" style={{ textAlign: 'center', padding: '32px 16px', background: 'transparent' }}>
-            <p style={{ margin: 0, color: 'var(--text-muted)' }}>No transactions yet.</p>
-          </div>
-        ) : (
-          <div className="glass-panel" style={{ padding: '0', background: 'transparent', border: 'none' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'var(--surface-elevated)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color)' }}>
-                  <Plus size={20} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: '500', fontSize: '15px', color: 'var(--text-primary)' }}>Fund Injection</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Verified Protocol</div>
-                </div>
-              </div>
-              <div style={{ fontWeight: '400', color: 'var(--accent-color)', fontSize: '16px', letterSpacing: '1px' }}>+ ₹{balance.toLocaleString('en-IN')}</div>
-            </div>
-          </div>
-        )}
+        <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'center' }}>
+          <button className="btn btn-secondary" style={{ width: '80%', padding: '12px', fontSize: '13px' }}>
+            <Plus size={16} style={{ marginRight: '8px' }} /> Add Payment Method
+          </button>
+        </div>
       </div>
+
+      <h3 style={{ fontSize: '14px', margin: '24px 0 16px', color: 'var(--text-primary)' }}>Wallet Balance</h3>
+      
+      <div className="order-summary">
+        <div className="summary-row">
+          <span>Current Balance</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>₹{balance.toLocaleString('en-IN')}</span>
+        </div>
+        <div className="summary-row">
+          <span>Recharge Amount</span>
+          <span>₹2,500.00</span>
+        </div>
+        <div className="summary-row">
+          <span>Tax / Fee</span>
+          <span>₹0.00</span>
+        </div>
+        
+        <div className="summary-row total">
+          <span>New Balance</span>
+          <span className="total-price">
+            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', marginRight: '4px' }}>₹</span>
+            {(balance + 2500).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+      </div>
+
+      <button className="btn btn-primary" onClick={handlePayment} style={{ marginTop: '32px' }}>
+        {isProcessing ? 'Processing...' : 'Pay Now'}
+      </button>
     </div>
   );
 }
